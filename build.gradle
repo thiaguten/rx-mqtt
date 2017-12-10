@@ -1,0 +1,206 @@
+plugins {
+    // Add plugin, but do not apply it.
+    id "com.github.hierynomus.license" version "0.14.0" apply false
+    id "com.github.ben-manes.versions" version "0.17.0" apply false
+}
+
+apply from: "$rootDir/dependencies.gradle"
+
+allprojects {
+    group "br.com.thiaguten"
+    version "0.2.0-SNAPSHOT"
+//    buildDir = "/mnt/ramdisk/${rootProject.name}/${project.name}"
+
+    ext {
+        jdkVersion = 1.8
+        repositoryName = "rx-mqtt"
+        repositoryOwner = "thiaguten"
+        isReleaseVersion = (project.version ==~ /(\d+\.\d+\.\d+)/)
+        sonatypeUsername = project.hasProperty("ossrhUsername") ? rootProject.ossrhUsername : ""
+        sonatypePassword = project.hasProperty("ossrhPassword") ? rootProject.ossrhPassword : ""
+        sonatypeUrl = isReleaseVersion ? "https://oss.sonatype.org/service/local/staging/deploy/maven2/" : "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+
+    apply plugin: "idea"
+
+    idea {
+        module {
+            downloadSources = true
+            downloadJavadoc = false
+        }
+    }
+}
+
+subprojects {
+    apply plugin: "pmd"
+    apply plugin: "java"
+    apply plugin: "maven"
+    apply plugin: "signing"
+    apply plugin: "findbugs"
+    apply plugin: "checkstyle"
+    apply plugin: "com.github.hierynomus.license"
+    apply plugin: "com.github.ben-manes.versions"
+
+    sourceCompatibility = jdkVersion
+    targetCompatibility = jdkVersion
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.compilerArgs = ["-Xlint:-options", "-Xlint:-path"]
+        options.fork = true
+        options.incremental = true
+    }
+
+    task wrapper(type: Wrapper) {
+        description = "Generates gradlew[.bat] scripts"
+        gradleVersion = "4.4"
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            failOnVersionConflict()
+            force loggingDependecies.slf4j_api
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        compile loggingDependecies.slf4j_api
+    }
+
+    license {
+        header = rootProject.file("etc/license/HEADER")
+        strictCheck = true
+        ignoreFailures = false
+        skipExistingHeaders = true
+        ext.name = "Thiago Gutenberg Carvalho da Costa"
+        ext.email = "thiaguten@gmail.com"
+        ext.year = Calendar.getInstance().get(Calendar.YEAR)
+        mapping {
+            java = "SLASHSTAR_STYLE"
+        }
+    }
+
+    checkstyle {
+        toolVersion = "8.5"
+        showViolations = true
+        ignoreFailures = false
+        sourceSets = [sourceSets.main]
+        configFile = rootProject.file("etc/config/checkstyle.xml")
+    }
+
+    tasks.withType(Checkstyle) {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
+    findbugs {
+        toolVersion = "3.0.1"
+        ignoreFailures = true
+        effort = "max"
+        reportLevel = "high"
+        sourceSets = [sourceSets.main]
+    }
+
+    tasks.withType(FindBugs) {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
+    pmd {
+        toolVersion = "5.8.1"
+        consoleOutput = true
+        ignoreFailures = true
+        sourceSets = [sourceSets.main]
+    }
+
+    tasks.withType(Pmd) {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
+    javadoc {
+        failOnError = true
+        options.author = true
+        options.encoding = "UTF-8"
+        options.header = project.name
+        options.memberLevel = JavadocMemberLevel.PROTECTED
+        if (JavaVersion.current().isJava8Compatible()) {
+            options.addStringOption("Xdoclint:none", "-quiet")
+        }
+    }
+
+    task sourceJar(type: Jar, dependsOn: classes) {
+        classifier "sources"
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier "javadoc"
+        from javadoc.destinationDir
+    }
+
+    artifacts {
+        archives jar
+        archives sourceJar
+        archives javadocJar
+    }
+
+    signing {
+        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: sonatypeUrl) {
+                    authentication(userName: sonatypeUsername, password: sonatypePassword)
+                }
+
+                pom.project {
+                    packaging "jar"
+                    name project.name
+                    description project.description
+                    url "https://github.com/${repositoryOwner}/${repositoryName}"
+
+                    inceptionYear "2017"
+
+                    scm {
+                        url "https://github.com/${repositoryOwner}/${repositoryName}"
+                        connection "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
+                        developerConnection "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
+                        tag "HEAD"
+                    }
+
+                    licenses {
+                        license {
+                            name "The Apache Software License, Version 2.0"
+                            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                            distribution "repo"
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id "thiaguten"
+                            name "Thiago Gutenberg Carvalho da Costa"
+                            email "thiaguten@gmail.com"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

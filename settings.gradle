@@ -1,0 +1,4 @@
+rootProject.name = "rx-mqtt"
+
+include "rx-mqtt-api"
+include "rx-mqtt-paho"
