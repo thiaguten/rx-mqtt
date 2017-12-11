@@ -205,13 +205,11 @@ Maven:
 
 Gradle:
 
-```
-
-// implementation
+```gradle
 compile 'br.com.thiaguten:rx-mqtt-paho:0.1.0'
 ```
 
 ### Todos
 
- - Write MORE Tests
+ - Write more Tests
  - Write JavaDocs

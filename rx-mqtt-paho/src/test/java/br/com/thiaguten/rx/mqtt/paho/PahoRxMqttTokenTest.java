@@ -134,7 +134,6 @@ public class PahoRxMqttTokenTest {
     } catch (Exception e) {
       assertThat(e).isExactlyInstanceOf(PahoRxMqttException.class);
       assertThat(e).hasCauseExactlyInstanceOf(MqttException.class);
-      assertThat(e).hasMessageContaining("Erro inesperado");
     }
 
     verify(mqttToken).getMessage();
