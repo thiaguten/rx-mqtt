@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-package br.com.thiaguten.rx.mqtt.api;
+package br.com.thiaguten.rx.mqtt.paho;
 
-public class RxMqttException extends RuntimeException {
-
-  private static final long serialVersionUID = 1L;
-
-  public RxMqttException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
+public class PahoRxMqttCallbackTest {
+// TODO
 }

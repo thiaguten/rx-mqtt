@@ -19,6 +19,7 @@ package br.com.thiaguten.rx.mqtt.paho;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -76,13 +77,31 @@ public class PahoRxMqttClientDisconnectTest {
     assertNotNull(client);
     RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
     assertNotNull(rxClient);
-    when(client.disconnect(isNull(), any(IMqttActionListener.class))).thenThrow(
-        new PahoRxMqttException(new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED)));
+    doThrow(new PahoRxMqttException(new MqttException(MqttException.REASON_CODE_CLIENT_ALREADY_DISCONNECTED)))
+        .when(client).disconnect(isNull(), any(IMqttActionListener.class));
     TestObserver<RxMqttToken> testObserver = rxClient.disconnect().test();
     testObserver.assertSubscribed();
     testObserver.assertError(PahoRxMqttException.class);
     when(client.isConnected()).thenReturn(false);
     verify(client).disconnect(isNull(), any(IMqttActionListener.class));
+    assertFalse(rxClient.isConnected().blockingGet());
+    verify(client).isConnected();
+    verifyNoMoreInteractions(client);
+  }
+
+  @Test
+  public void whenClientDisconnectForciblyIsCalledAndClientAlreadyDisconnectedThenThrowException() throws MqttException {
+    IMqttAsyncClient client = mock(IMqttAsyncClient.class);
+    assertNotNull(client);
+    RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
+    assertNotNull(rxClient);
+    doThrow(new MqttException(MqttException.REASON_CODE_UNEXPECTED_ERROR))
+        .when(client).disconnectForcibly();
+    TestObserver<Void> testObserver = rxClient.disconnectForcibly().test();
+    testObserver.assertSubscribed();
+    testObserver.assertError(PahoRxMqttException.class);
+    when(client.isConnected()).thenReturn(false);
+    verify(client).disconnectForcibly();
     assertFalse(rxClient.isConnected().blockingGet());
     verify(client).isConnected();
     verifyNoMoreInteractions(client);

@@ -58,7 +58,7 @@ public class PahoRxMqttClientCloseTest {
     assertNotNull(client);
     RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
     assertNotNull(rxClient);
-    doThrow(new PahoRxMqttException(new MqttException(MqttException.REASON_CODE_CLIENT_CONNECTED))).when(client).close();
+    doThrow(new MqttException(MqttException.REASON_CODE_CLIENT_CONNECTED)).when(client).close();
     TestObserver<Void> testObserver = rxClient.close().test();
     testObserver.assertSubscribed();
     testObserver.assertError(PahoRxMqttException.class);

@@ -17,15 +17,11 @@
 package br.com.thiaguten.rx.mqtt.paho;
 
 import br.com.thiaguten.rx.mqtt.api.RxMqttCallback;
-import br.com.thiaguten.rx.mqtt.api.RxMqttException;
-import br.com.thiaguten.rx.mqtt.api.RxMqttMessage;
 import br.com.thiaguten.rx.mqtt.api.RxMqttToken;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallbackExtended {
@@ -37,59 +33,7 @@ public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallback
 
   @Override
   public final void deliveryComplete(IMqttDeliveryToken token) {
-    deliveryComplete(new RxMqttToken() {
-      @Override
-      public String getClientId() {
-        return token.getClient().getClientId();
-      }
-
-      @Override
-      public boolean isComplete() {
-        return token.isComplete();
-      }
-
-      @Override
-      public String[] getTopics() {
-        return token.getTopics();
-      }
-
-      @Override
-      public int getMessageId() {
-        return token.getMessageId();
-      }
-
-      @Override
-      public int[] getGrantedQos() {
-        return token.getGrantedQos();
-      }
-
-      @Override
-      public boolean getSessionPresent() {
-        return token.getSessionPresent();
-      }
-
-      @Override
-      public RxMqttMessage getMessage() {
-        return Optional.ofNullable(token)
-            .map(t -> {
-              try {
-                return t.getMessage();
-              } catch (MqttException me) {
-                throw new PahoRxMqttException(me, t);
-              }
-            })
-            .map(PahoRxMqttMessage::create)
-            .orElse(null);
-      }
-
-      @Override
-      public RxMqttException getException() {
-        return Optional.of(token)
-            .filter(t -> t.getException() != null)
-            .map(PahoRxMqttException::new)
-            .orElse(null);
-      }
-    });
+    deliveryComplete(new PahoRxMqttToken(token));
   }
 
   // convenient methods

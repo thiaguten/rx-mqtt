@@ -30,6 +30,7 @@ import br.com.thiaguten.rx.mqtt.api.RxMqttClient;
 import br.com.thiaguten.rx.mqtt.api.RxMqttMessage;
 import br.com.thiaguten.rx.mqtt.api.RxMqttQoS;
 import br.com.thiaguten.rx.mqtt.api.RxMqttToken;
+import io.reactivex.SingleEmitter;
 import io.reactivex.observers.TestObserver;
 import java.nio.charset.StandardCharsets;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -76,6 +77,10 @@ public class PahoRxMqttClientPublishTest {
     when(client.isConnected()).thenReturn(true);
     when(client.getClientId()).thenReturn(clientId);
 
+    RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
+    assertThat(rxClient).isNotNull();
+    assertTrue(rxClient.isConnected().blockingGet());
+
     IMqttActionListener publishActionListener = mock(IMqttActionListener.class);
     assertThat(publishActionListener).isNotNull();
 
@@ -83,6 +88,7 @@ public class PahoRxMqttClientPublishTest {
     assertThat(publishDeliveryToken).isNotNull();
     when(publishDeliveryToken.isComplete()).thenReturn(true);
     when(publishDeliveryToken.getMessage()).thenReturn(null);
+    when(publishDeliveryToken.getMessageId()).thenReturn(1);
     when(publishDeliveryToken.getClient()).thenReturn(client);
     when(publishDeliveryToken.getException()).thenReturn(null);
     when(publishDeliveryToken.getUserContext()).thenReturn(null);
@@ -90,12 +96,26 @@ public class PahoRxMqttClientPublishTest {
     when(publishDeliveryToken.getTopics()).thenReturn(new String[] {topic});
     when(publishDeliveryToken.getActionCallback()).thenReturn(publishActionListener);
     when(publishDeliveryToken.getClient().getClientId()).thenReturn(clientId);
+    when(publishDeliveryToken.getSessionPresent()).thenReturn(false);
+
+    RxMqttToken rxToken = mock(RxMqttToken.class);
+    assertThat(rxToken).isNotNull();
+    when(rxToken.isComplete()).thenReturn(true);
+    when(rxToken.getMessage()).thenReturn(null);
+    when(rxToken.getMessageId()).thenReturn(1);
+    when(rxToken.getException()).thenReturn(null);
+    when(rxToken.getGrantedQos()).thenReturn(new int[] {qos});
+    when(rxToken.getTopics()).thenReturn(new String[] {topic});
+    when(rxToken.getClientId()).thenReturn(clientId);
+    when(rxToken.getSessionPresent()).thenReturn(false);
 
     publishActionListener.onSuccess(publishDeliveryToken);
 
-    RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
-    assertThat(rxClient).isNotNull();
-    assertTrue(rxClient.isConnected().blockingGet());
+    @SuppressWarnings("unchecked")
+    SingleEmitter<RxMqttToken> publishSingleEmitter = mock(SingleEmitter.class);
+    assertThat(publishSingleEmitter).isNotNull();
+
+    publishSingleEmitter.onSuccess(rxToken);
 
     RxMqttMessage mqttMessage = PahoRxMqttMessage.create(payload, RxMqttQoS.valueOf(qos), retain);
     assertThat(mqttMessage).isNotNull();
@@ -121,6 +141,28 @@ public class PahoRxMqttClientPublishTest {
     assertThat(publishDeliveryTokenArgumentCaptor.getValue().getTopics()).isEqualTo(publishDeliveryToken.getTopics());
     assertThat(publishDeliveryTokenArgumentCaptor.getValue().getActionCallback()).isEqualTo(publishDeliveryToken.getActionCallback());
     assertThat(publishDeliveryTokenArgumentCaptor.getValue().getClient().getClientId()).isEqualTo(publishDeliveryToken.getClient().getClientId());
+    verifyNoMoreInteractions(publishActionListener);
+
+    ArgumentCaptor<RxMqttToken> rxPublishDeliveryTokenArgumentCaptor = ArgumentCaptor.forClass(RxMqttToken.class);
+    verify(publishSingleEmitter).onSuccess(rxPublishDeliveryTokenArgumentCaptor.capture());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor).isNotNull();
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue()).isInstanceOf(RxMqttToken.class);
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().isComplete()).isEqualTo(publishDeliveryToken.isComplete());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().isComplete()).isEqualTo(rxToken.isComplete());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getMessage()).isEqualTo(publishDeliveryToken.getMessage());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getMessage()).isEqualTo(rxToken.getMessage());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getMessageId()).isEqualTo(publishDeliveryToken.getMessageId());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getMessageId()).isEqualTo(rxToken.getMessageId());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getException()).isEqualTo(publishDeliveryToken.getException());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getException()).isEqualTo(rxToken.getException());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getGrantedQos()).isEqualTo(publishDeliveryToken.getGrantedQos());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getGrantedQos()).isEqualTo(rxToken.getGrantedQos());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getTopics()).isEqualTo(publishDeliveryToken.getTopics());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getTopics()).isEqualTo(rxToken.getTopics());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getClientId()).isEqualTo(publishDeliveryToken.getClient().getClientId());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getClientId()).isEqualTo(rxToken.getClientId());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getSessionPresent()).isEqualTo(publishDeliveryToken.getSessionPresent());
+    assertThat(rxPublishDeliveryTokenArgumentCaptor.getValue().getSessionPresent()).isEqualTo(rxToken.getSessionPresent());
     verifyNoMoreInteractions(publishActionListener);
   }
 
@@ -152,4 +194,5 @@ public class PahoRxMqttClientPublishTest {
     verify(client).isConnected();
     verifyNoMoreInteractions(client);
   }
+
 }

@@ -27,11 +27,16 @@ import br.com.thiaguten.rx.mqtt.api.RxMqttClient;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.observers.TestObserver;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,8 +46,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PahoRxMqttClientTest {
 
   @Test
-  public void whenClientCreateIsCalledThenCreateSuccessfully() {
+  public void whenClientCreateIsCalledThenCreateSuccessfully() throws MqttException {
     String brokerUri = "tcp://localhost:1883";
+    IMqttAsyncClient client = new MqttAsyncClient(brokerUri, "clientId");
+
     BackpressureStrategy backpressureStrategy = BackpressureStrategy.LATEST;
     MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
     PahoRxMqttCallback pahoCallback =
@@ -51,12 +58,13 @@ public class PahoRxMqttClientTest {
     // create by mqtt connect options only
     PahoRxMqttClient pahoRxMqttClient = PahoRxMqttClient.create(mqttConnectOptions,
         connectOptions -> {
-          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(brokerUri)
+          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(client)
               .setBackpressureStrategy(backpressureStrategy);
           Optional.ofNullable(connectOptions).ifPresent(builder::setConnectOptions);
           return builder.build();
         });
     assertThat(pahoRxMqttClient).isNotNull();
+    assertThat(pahoRxMqttClient.getClient()).isEqualTo(client);
     assertThat(pahoRxMqttClient.getCallback()).isNotEqualTo(pahoCallback);
     assertThat(pahoRxMqttClient.getServerUri().blockingGet()).isEqualTo(brokerUri);
     assertThat(pahoRxMqttClient.getConnectOptions()).isEqualTo(mqttConnectOptions);
@@ -65,13 +73,14 @@ public class PahoRxMqttClientTest {
     // create by mqtt connect options and paho mqtt callback
     PahoRxMqttClient pahoRxMqttClient2 = PahoRxMqttClient.create(mqttConnectOptions, pahoCallback,
         (connectOptions, callback) -> {
-          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(brokerUri)
+          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(client)
               .setBackpressureStrategy(backpressureStrategy);
           Optional.ofNullable(connectOptions).ifPresent(builder::setConnectOptions);
           Optional.ofNullable(callback).ifPresent(builder::setCallbackListener);
           return builder.build();
         });
     assertThat(pahoRxMqttClient2).isNotNull();
+    assertThat(pahoRxMqttClient2.getClient()).isEqualTo(client);
     assertThat(pahoRxMqttClient2.getCallback()).isEqualTo(pahoCallback);
     assertThat(pahoRxMqttClient2.getServerUri().blockingGet()).isEqualTo(brokerUri);
     assertThat(pahoRxMqttClient2.getConnectOptions()).isEqualTo(mqttConnectOptions);
@@ -183,7 +192,7 @@ public class PahoRxMqttClientTest {
     MqttClientPersistence clientPersistence =
         new MqttDefaultFilePersistence(tempDir.getAbsolutePath());
 
-    // build by broker uri and client id
+    // build by broker uri, client id and persistence
     PahoRxMqttClient rxClient = PahoRxMqttClient.builder(brokerUri, clientId, clientPersistence).build();
     assertThat(rxClient).isNotNull();
     assertThat(rxClient.isConnected().blockingGet()).isFalse();
@@ -198,4 +207,26 @@ public class PahoRxMqttClientTest {
     testObserverServerUri.assertNoErrors();
     assertThat(rxClient.getServerUri().blockingGet()).isEqualTo(brokerUri);
   }
+
+  @Test(expected = PahoRxMqttException.class)
+  public void whenClientBrokerUriAndClientIdAndMqttClientPersistenceBuilderBuildIsCalledThenBuildFails()
+      throws IOException {
+    Path tempPath = Paths.get(System.getProperty("user.dir"), "temp.txt");
+    if (!Files.exists(tempPath)) {
+      Files.createFile(tempPath);
+    }
+    File tempFile = tempPath.toFile();
+    tempFile.deleteOnExit();
+
+    MqttClientPersistence clientPersistence =
+        new MqttDefaultFilePersistence(tempFile.getAbsolutePath());
+
+    PahoRxMqttClient rxClient = PahoRxMqttClient.builder("tcp://localhost:1883", "pahoClientId", clientPersistence).build();
+    assertThat(rxClient).isNotNull();
+    assertThat(rxClient.isConnected().blockingGet()).isFalse();
+
+    TestObserver<String> testObserverClientId = rxClient.getClientId().test();
+    testObserverClientId.assertSubscribed();
+  }
+
 }
