@@ -27,12 +27,12 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallbackExtended {
 
   @Override
-  public final void messageArrived(String topic, MqttMessage message) throws Exception {
+  public void messageArrived(String topic, MqttMessage message) throws Exception {
     // NOP
   }
 
   @Override
-  public final void deliveryComplete(IMqttDeliveryToken token) {
+  public void deliveryComplete(IMqttDeliveryToken token) {
     deliveryComplete(new PahoRxMqttToken(token));
   }
 
@@ -51,21 +51,42 @@ public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallback
       Consumer<Throwable> onConnectionLost,
       BiConsumer<Boolean, String> onConnectComplete,
       Consumer<RxMqttToken> onDeliveryComplete) {
-    return new PahoRxMqttCallback() {
-      @Override
-      public void connectionLost(Throwable cause) {
-        onConnectionLost.accept(cause);
-      }
+    return new PahoRxMqttCallbackImpl(
+        onConnectionLost,
+        onConnectComplete,
+        onDeliveryComplete);
+  }
 
-      @Override
-      public void connectComplete(boolean reconnect, String serverUri) {
-        onConnectComplete.accept(reconnect, serverUri);
-      }
+  // inner implementation
 
-      @Override
-      public final void deliveryComplete(RxMqttToken token) {
-        onDeliveryComplete.accept(token);
-      }
-    };
+  static class PahoRxMqttCallbackImpl extends PahoRxMqttCallback {
+
+    private final Consumer<Throwable> onConnectionLost;
+    private final BiConsumer<Boolean, String> onConnectComplete;
+    private final Consumer<RxMqttToken> onDeliveryComplete;
+
+    public PahoRxMqttCallbackImpl(
+        Consumer<Throwable> onConnectionLost,
+        BiConsumer<Boolean, String> onConnectComplete,
+        Consumer<RxMqttToken> onDeliveryComplete) {
+      this.onConnectionLost = onConnectionLost;
+      this.onConnectComplete = onConnectComplete;
+      this.onDeliveryComplete = onDeliveryComplete;
+    }
+
+    @Override
+    public void connectionLost(Throwable cause) {
+      onConnectionLost.accept(cause);
+    }
+
+    @Override
+    public void connectComplete(boolean reconnect, String serverUri) {
+      onConnectComplete.accept(reconnect, serverUri);
+    }
+
+    @Override
+    public void deliveryComplete(RxMqttToken token) {
+      onDeliveryComplete.accept(token);
+    }
   }
 }

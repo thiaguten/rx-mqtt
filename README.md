@@ -6,20 +6,20 @@
 [![Javadocs](http://www.javadoc.io/badge/br.com.thiaguten/rx-mqtt-paho.svg)](http://www.javadoc.io/doc/br.com.thiaguten/rx-mqtt-paho)
 [![License](https://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
-Basically, for now, this project has two modules:
+Basically, this project has two modules:
 
  - RxMQTT API
  - RxMQTT Paho
 
-RxMQTT API is a set of interfaces that was built in top of RxJava for composing asynchronous and event-based programs by using observable sequences. These interfaces define a higher abstraction for implementations.
+RxMQTT API is a set of interfaces that was built on top of RxJava for composing asynchronous and event-based programs by using observable sequences. These interfaces define a higher abstraction for implementations.
 
-RxMQTT Paho is the implementation of RxMQTT API that was built in top of Eclipse Paho framework to handle MQTT messages.
+RxMQTT Paho is the implementation of RxMQTT API that was built on top of Eclipse Paho framework to handle MQTT messages.
 
 ---
 
 ### Creating the client
 
-The game begins by creating an instance of the PahoRxMqttClient class through some of the building methods:
+It all starts by using one of the methods below to create an instance of PahoRxMqttClient class.
 
 ```java
 String clientId = "clientId";
@@ -57,7 +57,7 @@ RxMqttClient client = PahoRxMqttClient.builder(brokerUri)
 ```
 
 ### Connect
-You can archive this by calling the method:
+You can achieve this by using the following method:
 
 ```java
 Single<RxMqttToken> connect();
@@ -75,7 +75,7 @@ client.connect().subscribe(connectToken -> {
 ```
 
 ### Subscribe
-You can archive this by calling some of the methods:
+You can achieve this by using one of the following methods:
 
 ```java
 Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos);
@@ -97,7 +97,7 @@ client.on(topic).subscribe(message -> {
 ```
 
 ### Publish
-You can archive this by calling the method:
+You can achieve this by using the following method:
 
 ```java
 Single<RxMqttToken> publish(String topic, RxMqttMessage message);
@@ -114,7 +114,7 @@ client.publish(topic, PahoRxMqttMessage.create("message")).subscribe(publishToke
 ```
 
 ### Unsubscribe
-You can archive this by calling the method:
+You can achieve this by using the following method:
 
 ```java
 Single<RxMqttToken> off(String... topic);
@@ -131,7 +131,7 @@ client.off(topic).subscribe(unsubscribeToken -> {
 ```
 
 ### Disconnect
-You can archive this by calling some of the methods:
+You can achieve this by using one of the following methods:
 
 ```java
 Single<RxMqttToken> disconnect();
@@ -156,7 +156,7 @@ client.disconnect().subscribe(disconnectToken -> {
 ```
 
 ### Close
-You can archive this by calling the method:
+You can achieve this by using the following method:
 
 ```java
 Completable close();
@@ -173,7 +173,7 @@ client.close().subscribe(() -> {
 ```
 
 ### Unsubscribe, Disconnect and Close
-You can archive this by calling the method:
+You can achieve this by using the following method:
 
 ```java
 Completable offAndClose(String... topics);
@@ -211,5 +211,5 @@ compile 'br.com.thiaguten:rx-mqtt-paho:0.1.0'
 
 ### Todos
 
- - Write more Tests
- - Write JavaDocs
+ - Write more tests
+ - Write javadocs
