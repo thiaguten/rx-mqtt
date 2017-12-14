@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -246,10 +245,10 @@ public class PahoRxMqttClientSubscribeTest {
 
   @Test
   public void whenClientOnIsCalledThenMessageArrives() throws Exception {
-    int id = 1;
-    int qos = 2;
+    int[] ids = {1};
+    int[] qos = {2};
     boolean retain = false;
-    String topic = "topic";
+    String[] topics = {"topic"};
     byte[] payload = "payload".getBytes();
 
     IMqttAsyncClient client = mock(IMqttAsyncClient.class);
@@ -258,45 +257,51 @@ public class PahoRxMqttClientSubscribeTest {
     RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
     assertThat(rxClient).isNotNull();
 
-    TestSubscriber<RxMqttMessage> testSubscriber = rxClient.on(topic, RxMqttQoS.valueOf(qos)).test();
+    RxMqttQoS[] rxQos = Arrays.stream(qos).boxed().map(RxMqttQoS::valueOf).toArray(RxMqttQoS[]::new);
+
+    TestSubscriber<RxMqttMessage> testSubscriber = rxClient.on(topics[0], rxQos[0]).test();
     testSubscriber.assertSubscribed();
     testSubscriber.assertNoErrors();
 
     MqttMessage expectedMessage = new MqttMessage(payload);
-    expectedMessage.setId(id);
-    expectedMessage.setQos(qos);
+    expectedMessage.setId(ids[0]);
+    expectedMessage.setQos(qos[0]);
     expectedMessage.setRetained(retain);
 
     PahoRxMqttMessage expectedRxMqttMessage = PahoRxMqttMessage.create(expectedMessage);
-    expectedRxMqttMessage.setTopic(topic);
+    expectedRxMqttMessage.setTopic(topics[0]);
 
     @SuppressWarnings("unchecked")
-    FlowableEmitter<RxMqttMessage> flowableEmitter = mock(FlowableEmitter.class);
-    assertThat(flowableEmitter).isNotNull();
+    FlowableEmitter<RxMqttMessage> emitter = spy(FlowableEmitter.class);
+    assertThat(emitter).isNotNull();
 
-    flowableEmitter.onNext(expectedRxMqttMessage);
+    IMqttMessageListener messageListener = spy(PahoRxMqttClient.newMessageListener(emitter));
+    assertThat(messageListener).isNotNull();
 
-    IMqttMessageListener messageListener = mock(IMqttMessageListener.class);
-    ArgumentCaptor<MqttMessage> mqttMessageArgumentCaptor = ArgumentCaptor.forClass(MqttMessage.class);
-    doNothing().when(messageListener).messageArrived(eq(topic), mqttMessageArgumentCaptor.capture());
-    messageListener.messageArrived(topic, expectedMessage);
-    verify(messageListener).messageArrived(topic, expectedMessage);
-    assertThat(mqttMessageArgumentCaptor.getValue()).isEqualTo(expectedMessage);
-
-    assertThat(mqttMessageArgumentCaptor.getValue().getId()).isEqualTo(id);
-    assertThat(mqttMessageArgumentCaptor.getValue().getQos()).isEqualTo(qos);
-    assertThat(mqttMessageArgumentCaptor.getValue().isRetained()).isFalse();
-    assertThat(mqttMessageArgumentCaptor.getValue().getPayload()).isEqualTo(payload);
-    assertThat(mqttMessageArgumentCaptor.getValue().getPayload()).isEqualTo(expectedRxMqttMessage.getPayload());
+    emitter.onNext(expectedRxMqttMessage);
+    messageListener.messageArrived(topics[0], expectedMessage);
 
     when(client.isConnected()).thenReturn(true);
-    verify(messageListener).messageArrived(eq(topic), mqttMessageArgumentCaptor.capture());
+    verify(client).subscribe(eq(topics), eq(qos), isNull(), any(IMqttActionListener.class), any(IMqttMessageListener[].class));
     assertThat(rxClient.isConnected().blockingGet()).isTrue();
     verify(client).isConnected();
+    verifyNoMoreInteractions(client);
+
+    ArgumentCaptor<String> mqttMessageArrivedTopicArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<MqttMessage> mqttMessageArrivedMessageArgumentCaptor = ArgumentCaptor.forClass(MqttMessage.class);
+    verify(messageListener).messageArrived(mqttMessageArrivedTopicArgumentCaptor.capture(), mqttMessageArrivedMessageArgumentCaptor.capture());
+    assertThat(mqttMessageArrivedTopicArgumentCaptor.getValue()).isExactlyInstanceOf(String.class);
+    assertThat(mqttMessageArrivedTopicArgumentCaptor.getValue()).isEqualTo(topics[0]);
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue()).isExactlyInstanceOf(MqttMessage.class);
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue()).isEqualTo(expectedMessage);
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue().getId()).isEqualTo(expectedMessage.getId());
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue().getQos()).isEqualTo(expectedMessage.getQos());
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue().isRetained()).isFalse();
+    assertThat(mqttMessageArrivedMessageArgumentCaptor.getValue().getPayload()).isEqualTo(payload);
+    verifyNoMoreInteractions(messageListener);
 
     ArgumentCaptor<PahoRxMqttMessage> rxMqttMessageTokenArgumentCaptor = ArgumentCaptor.forClass(PahoRxMqttMessage.class);
-    verify(flowableEmitter).onNext(rxMqttMessageTokenArgumentCaptor.capture());
-    assertThat(rxMqttMessageTokenArgumentCaptor).isNotNull();
+    verify(emitter, times(2)).onNext(rxMqttMessageTokenArgumentCaptor.capture());
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue()).isExactlyInstanceOf(PahoRxMqttMessage.class);
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getQoS()).isEqualTo(expectedRxMqttMessage.getQoS());
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getQoS().value()).isEqualTo(expectedMessage.getQos());
@@ -305,12 +310,11 @@ public class PahoRxMqttClientSubscribeTest {
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getPayload()).isEqualTo(expectedRxMqttMessage.getPayload());
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getPayload()).isEqualTo(expectedMessage.getPayload());
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getTopic()).isEqualTo(expectedRxMqttMessage.getTopic());
-    assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getTopic()).isEqualTo(topics[0]);
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getMqttMessage()).isEqualTo(expectedMessage);
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getMqttMessage().toString()).isEqualTo(expectedRxMqttMessage.toString());
     assertThat(rxMqttMessageTokenArgumentCaptor.getValue().getMqttMessage().toString()).isEqualTo(expectedMessage.toString());
-
-    verifyNoMoreInteractions(flowableEmitter);
+    verifyNoMoreInteractions(emitter);
   }
 
   @Test

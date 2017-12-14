@@ -44,6 +44,7 @@ import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class PahoRxMqttClient implements RxMqttClient {
@@ -132,22 +133,15 @@ public class PahoRxMqttClient implements RxMqttClient {
 
   @Override
   public Flowable<RxMqttMessage> on(
-      String[] topics, RxMqttQoS[] qos, BackpressureStrategy strategy) {
+      String[] topics, RxMqttQoS[] rxMqttQos, BackpressureStrategy strategy) {
     return Flowable.create(emitter -> {
-
-      // Create message listeners for each topic.
-      IMqttMessageListener[] messageListeners = Stream
-          .generate(() -> (IMqttMessageListener) (t, m) -> {
-            PahoRxMqttMessage pahoRxMqttMessage = PahoRxMqttMessage.create(m);
-            pahoRxMqttMessage.setTopic(t);
-            emitter.onNext(pahoRxMqttMessage);
-          })
+      // creates a message listener for each filter topic
+      IMqttMessageListener[] messageListeners = Stream.generate(() -> newMessageListener(emitter))
           .limit(topics.length)
           .toArray(IMqttMessageListener[]::new);
-
-      int[] intQos = Arrays.stream(qos).mapToInt(RxMqttQoS::value).toArray();
-      client.subscribe(
-          topics, intQos, null, newActionListener(emitter), messageListeners);
+      // converts each RxMqttQoS to primitive integer
+      int[] qos = Arrays.stream(rxMqttQos).mapToInt(RxMqttQoS::value).toArray();
+      client.subscribe(topics, qos, null, newActionListener(emitter), messageListeners);
     }, strategy);
   }
 
@@ -264,7 +258,20 @@ public class PahoRxMqttClient implements RxMqttClient {
     return new PahoActionListener(onSuccess, onFailure);
   }
 
-  // internal inner class implementation
+  static IMqttMessageListener newMessageListener(FlowableEmitter<RxMqttMessage> emitter) {
+    BiConsumer<String, MqttMessage> onMessageArrived = (topic, message) -> {
+      PahoRxMqttMessage rxMqttMessage = PahoRxMqttMessage.create(message);
+      rxMqttMessage.setTopic(topic);
+      emitter.onNext(rxMqttMessage);
+    };
+    return newMessageListener(onMessageArrived);
+  }
+
+  static IMqttMessageListener newMessageListener(BiConsumer<String, MqttMessage> onMessageArrived) {
+    return new PahoMessageListener(onMessageArrived);
+  }
+
+  // internal ActionListener inner class implementation
 
   private static class PahoActionListener implements IMqttActionListener {
 
@@ -285,6 +292,22 @@ public class PahoRxMqttClient implements RxMqttClient {
     @Override
     public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
       onFailure.accept(asyncActionToken, exception);
+    }
+  }
+
+  // internal MessageListener inner class implementation
+
+  private static class PahoMessageListener implements IMqttMessageListener {
+
+    private final BiConsumer<String, MqttMessage> onMessageArrived;
+
+    public PahoMessageListener(BiConsumer<String, MqttMessage> onMessageArrived) {
+      this.onMessageArrived = onMessageArrived;
+    }
+
+    @Override
+    public void messageArrived(String topic, MqttMessage message) throws Exception {
+      onMessageArrived.accept(topic, message);
     }
   }
 
