@@ -60,11 +60,8 @@ public interface RxMqttClient {
     Optional.ofNullable(topics)
         .filter(tps -> isConnected().blockingGet())
         .ifPresent(tps -> {
-          off(tps)
-              //.doOnSuccess(unsubscribeToken -> System.out.println("unsubscribe"))
-              .blockingGet();
+          off(tps).blockingGet();
           disconnect()
-              //.doOnSuccess(disconnectToken -> System.out.println("disconnect"))
               .doOnError(disconnectError -> disconnectForcibly().blockingAwait())
               .blockingGet();
         });

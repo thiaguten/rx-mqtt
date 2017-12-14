@@ -44,7 +44,7 @@ public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallback
     return create(
         onConnectionLost,
         onConnectComplete,
-        (t) -> { /*NOP*/ });
+        token -> { /* NOP */ });
   }
 
   public static PahoRxMqttCallback create(
@@ -57,15 +57,15 @@ public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallback
         onDeliveryComplete);
   }
 
-  // inner implementation
+  // internal inner class implementation
 
-  static class PahoRxMqttCallbackImpl extends PahoRxMqttCallback {
+  private static class PahoRxMqttCallbackImpl extends PahoRxMqttCallback {
 
     private final Consumer<Throwable> onConnectionLost;
     private final BiConsumer<Boolean, String> onConnectComplete;
     private final Consumer<RxMqttToken> onDeliveryComplete;
 
-    public PahoRxMqttCallbackImpl(
+    PahoRxMqttCallbackImpl(
         Consumer<Throwable> onConnectionLost,
         BiConsumer<Boolean, String> onConnectComplete,
         Consumer<RxMqttToken> onDeliveryComplete) {

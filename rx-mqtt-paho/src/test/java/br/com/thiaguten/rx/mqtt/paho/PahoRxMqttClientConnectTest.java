@@ -24,6 +24,8 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -46,18 +48,28 @@ public class PahoRxMqttClientConnectTest {
   public void whenConnectIsCalledThenConnectSuccessfully() throws MqttException {
     IMqttAsyncClient client = mock(IMqttAsyncClient.class);
     assertNotNull(client);
+
     RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
     assertNotNull(rxClient);
+
     TestObserver<RxMqttToken> testObserver = rxClient.connect().test();
     testObserver.assertSubscribed();
     testObserver.assertNoErrors();
 
-    IMqttActionListener connectActionListener = mock(IMqttActionListener.class);
+    @SuppressWarnings("unchecked")
+    SingleEmitter<RxMqttToken> emitter = spy(SingleEmitter.class);
+    assertThat(emitter).isNotNull();
+
+    IMqttActionListener connectActionListener = spy(PahoRxMqttClient.newActionListener(emitter));
     assertThat(connectActionListener).isNotNull();
 
     IMqttToken token = mock(IMqttToken.class);
     assertThat(token).isNotNull();
 
+    RxMqttToken rxToken = mock(RxMqttToken.class);
+    assertThat(rxToken).isNotNull();
+
+    emitter.onSuccess(rxToken);
     connectActionListener.onSuccess(token);
 
     when(client.isConnected()).thenReturn(true);
@@ -66,10 +78,17 @@ public class PahoRxMqttClientConnectTest {
     verify(client).isConnected();
     verifyNoMoreInteractions(client);
 
+    ArgumentCaptor<RxMqttToken> connectRxTokenArgumentCaptor = ArgumentCaptor.forClass(RxMqttToken.class);
+    verify(emitter, times(2)).onSuccess(connectRxTokenArgumentCaptor.capture());
+    assertThat(connectRxTokenArgumentCaptor).isNotNull();
+    assertThat(connectRxTokenArgumentCaptor.getValue()).isExactlyInstanceOf(PahoRxMqttToken.class);
+    verifyNoMoreInteractions(emitter);
+
     ArgumentCaptor<IMqttToken> connectTokenArgumentCaptor = ArgumentCaptor.forClass(IMqttToken.class);
     verify(connectActionListener).onSuccess(connectTokenArgumentCaptor.capture());
     assertThat(connectTokenArgumentCaptor).isNotNull();
     assertThat(connectTokenArgumentCaptor.getValue()).isInstanceOf(IMqttToken.class);
+    assertThat(connectTokenArgumentCaptor.getValue()).isEqualTo(token);
     verifyNoMoreInteractions(connectActionListener);
   }
 
@@ -77,11 +96,13 @@ public class PahoRxMqttClientConnectTest {
   public void whenAlreadyConnectAndConnectIsCalledThrowException() throws MqttException {
     IMqttAsyncClient client = mock(IMqttAsyncClient.class);
     assertNotNull(client);
+
     RxMqttClient rxClient = PahoRxMqttClient.builder(client).build();
     assertNotNull(rxClient);
 
     IMqttToken token = mock(IMqttToken.class);
     assertThat(token).isNotNull();
+
     when(token.getException()).thenReturn(new MqttException(MqttException.REASON_CODE_CLIENT_CONNECTED));
 
     PahoRxMqttException exception = new PahoRxMqttException(token);
@@ -93,11 +114,11 @@ public class PahoRxMqttClientConnectTest {
     testObserver.assertSubscribed();
     testObserver.assertError(PahoRxMqttException.class);
 
-    IMqttActionListener connectActionListener = mock(IMqttActionListener.class);
-    assertThat(connectActionListener).isNotNull();
-
     @SuppressWarnings("unchecked")
     SingleEmitter<RxMqttToken> emitter = mock(SingleEmitter.class);
+
+    IMqttActionListener connectActionListener = spy(PahoRxMqttClient.newActionListener(emitter));
+    assertThat(connectActionListener).isNotNull();
 
     emitter.onError(exception);
     connectActionListener.onFailure(token, exception);
@@ -116,10 +137,10 @@ public class PahoRxMqttClientConnectTest {
     verifyNoMoreInteractions(connectActionListener);
 
     ArgumentCaptor<PahoRxMqttException> emitterThrowableArgumentCaptor = ArgumentCaptor.forClass(PahoRxMqttException.class);
-    verify(emitter).onError(emitterThrowableArgumentCaptor.capture());
+    verify(emitter, times(2)).onError(emitterThrowableArgumentCaptor.capture());
     assertThat(emitterThrowableArgumentCaptor).isNotNull();
     assertThat(emitterThrowableArgumentCaptor.getValue()).isExactlyInstanceOf(PahoRxMqttException.class);
-    assertThat(emitterThrowableArgumentCaptor.getValue()).hasCauseExactlyInstanceOf(MqttException.class);
+    assertThat(emitterThrowableArgumentCaptor.getValue()).hasCauseExactlyInstanceOf(PahoRxMqttException.class);
     assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isEqualTo(token);
     verifyNoMoreInteractions(emitter);
   }

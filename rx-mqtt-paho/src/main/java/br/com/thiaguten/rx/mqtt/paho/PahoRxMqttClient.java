@@ -27,9 +27,13 @@ import br.com.thiaguten.rx.mqtt.api.RxMqttToken;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
 import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -47,13 +51,13 @@ public class PahoRxMqttClient implements RxMqttClient {
   private final IMqttAsyncClient client;
   private final RxMqttCallback callback;
   private final MqttConnectOptions connectOptions;
-  private final BackpressureStrategy backpressureStrategy;
+  private final BackpressureStrategy globalBackpressureStrategy;
 
   private PahoRxMqttClient(final Builder builder) {
     this.client = builder.client;
     this.callback = builder.pahoCallback;
     this.connectOptions = builder.connectOptions;
-    this.backpressureStrategy = builder.backpressureStrategy;
+    this.globalBackpressureStrategy = builder.backpressureStrategy;
   }
 
   @Override
@@ -85,35 +89,12 @@ public class PahoRxMqttClient implements RxMqttClient {
   @Override
   public Single<RxMqttToken> connect() {
     return Single.create(emitter ->
-        client.connect(connectOptions, null, new IMqttActionListener() {
-          @Override
-          public void onSuccess(IMqttToken asyncActionToken) {
-            emitter.onSuccess(new PahoRxMqttToken(asyncActionToken));
-          }
-
-          @Override
-          public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-            emitter.onError(new PahoRxMqttException(exception, asyncActionToken));
-          }
-        })
-    );
+        client.connect(connectOptions, null, newActionListener(emitter)));
   }
 
   @Override
   public Single<RxMqttToken> disconnect() {
-    return Single.create(emitter ->
-        client.disconnect(null, new IMqttActionListener() {
-          @Override
-          public void onSuccess(IMqttToken asyncActionToken) {
-            emitter.onSuccess(new PahoRxMqttToken(asyncActionToken));
-          }
-
-          @Override
-          public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-            emitter.onError(new PahoRxMqttException(exception, asyncActionToken));
-          }
-        })
-    );
+    return Single.create(emitter -> client.disconnect(null, newActionListener(emitter)));
   }
 
   @Override
@@ -131,23 +112,12 @@ public class PahoRxMqttClient implements RxMqttClient {
   public Single<RxMqttToken> publish(String topic, RxMqttMessage message) {
     return Single.create(emitter ->
         client.publish(topic, message.getPayload(), message.getQoS().value(), message.isRetained(),
-            null, new IMqttActionListener() {
-              @Override
-              public void onSuccess(IMqttToken asyncActionToken) {
-                emitter.onSuccess(new PahoRxMqttToken(asyncActionToken));
-              }
-
-              @Override
-              public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                emitter.onError(new PahoRxMqttException(exception, asyncActionToken));
-              }
-            })
-    );
+            null, newActionListener(emitter)));
   }
 
   @Override
   public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos) {
-    return on(topics, qos, backpressureStrategy);
+    return on(topics, qos, globalBackpressureStrategy);
   }
 
   @Override
@@ -162,23 +132,8 @@ public class PahoRxMqttClient implements RxMqttClient {
 
   @Override
   public Flowable<RxMqttMessage> on(
-      String[] topics, RxMqttQoS[] qos, BackpressureStrategy backpressureStrategy) {
+      String[] topics, RxMqttQoS[] qos, BackpressureStrategy strategy) {
     return Flowable.create(emitter -> {
-      // Parse RxMqttQoS array to primitive int array.
-      int[] qosArray = Arrays.stream(qos).mapToInt(RxMqttQoS::value).toArray();
-
-      // Create action listener.
-      IMqttActionListener actionListener = new IMqttActionListener() {
-        @Override
-        public void onSuccess(IMqttToken asyncActionToken) {
-          // NOP
-        }
-
-        @Override
-        public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-          emitter.onError(new PahoRxMqttException(exception, asyncActionToken));
-        }
-      };
 
       // Create message listeners for each topic.
       IMqttMessageListener[] messageListeners = Stream
@@ -190,36 +145,26 @@ public class PahoRxMqttClient implements RxMqttClient {
           .limit(topics.length)
           .toArray(IMqttMessageListener[]::new);
 
-      client.subscribe(topics, qosArray, null, actionListener, messageListeners);
-    }, backpressureStrategy);
+      int[] intQos = Arrays.stream(qos).mapToInt(RxMqttQoS::value).toArray();
+      client.subscribe(
+          topics, intQos, null, newActionListener(emitter), messageListeners);
+    }, strategy);
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(
-      String topic, RxMqttQoS qos, BackpressureStrategy backpressureStrategy) {
-    return on(new String[]{topic}, new RxMqttQoS[]{qos}, backpressureStrategy);
+  public Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, BackpressureStrategy strategy) {
+    return on(new String[]{topic}, new RxMqttQoS[]{qos}, strategy);
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy backpressureStrategy) {
-    return on(topic, RxMqttQoS.EXACTLY_ONCE, backpressureStrategy);
+  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE, strategy);
   }
 
   @Override
   public Single<RxMqttToken> off(String... topics) {
     return Single.create(emitter ->
-        client.unsubscribe(topics, null, new IMqttActionListener() {
-          @Override
-          public void onSuccess(IMqttToken asyncActionToken) {
-            emitter.onSuccess(new PahoRxMqttToken(asyncActionToken));
-          }
-
-          @Override
-          public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-            emitter.onError(new PahoRxMqttException(exception, asyncActionToken));
-          }
-        })
-    );
+        client.unsubscribe(topics, null, newActionListener(emitter)));
   }
 
   // inner builder class
@@ -298,6 +243,51 @@ public class PahoRxMqttClient implements RxMqttClient {
     return f.apply(connectOptions, callback);
   }
 
+  // internal methods
+
+  static IMqttActionListener newActionListener(FlowableEmitter<RxMqttMessage> emitter) {
+    Consumer<IMqttToken> onNext = token -> { /* NOP */ };
+    BiConsumer<IMqttToken, Throwable> onFailure = (token, exception) ->
+        emitter.onError(new PahoRxMqttException(exception, token));
+    return newActionListener(onNext, onFailure);
+  }
+
+  static IMqttActionListener newActionListener(SingleEmitter<RxMqttToken> emitter) {
+    Consumer<IMqttToken> onSuccess = token -> emitter.onSuccess(new PahoRxMqttToken(token));
+    BiConsumer<IMqttToken, Throwable> onFailure = (token, exception) ->
+        emitter.onError(new PahoRxMqttException(exception, token));
+    return newActionListener(onSuccess, onFailure);
+  }
+
+  static IMqttActionListener newActionListener(
+      Consumer<IMqttToken> onSuccess, BiConsumer<IMqttToken, Throwable> onFailure) {
+    return new PahoActionListener(onSuccess, onFailure);
+  }
+
+  // internal inner class implementation
+
+  private static class PahoActionListener implements IMqttActionListener {
+
+    private final Consumer<IMqttToken> onSuccess;
+    private final BiConsumer<IMqttToken, Throwable> onFailure;
+
+    PahoActionListener(
+        Consumer<IMqttToken> onSuccess, BiConsumer<IMqttToken, Throwable> onFailure) {
+      this.onSuccess = onSuccess;
+      this.onFailure = onFailure;
+    }
+
+    @Override
+    public void onSuccess(IMqttToken asyncActionToken) {
+      onSuccess.accept(asyncActionToken);
+    }
+
+    @Override
+    public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+      onFailure.accept(asyncActionToken, exception);
+    }
+  }
+
   // getters
 
   //@VisibleForTesting - using the same package in test  for test visibility
@@ -317,6 +307,6 @@ public class PahoRxMqttClient implements RxMqttClient {
 
   //@VisibleForTesting - using the same package in test  for test visibility
   BackpressureStrategy getBackpressureStrategy() {
-    return backpressureStrategy;
+    return globalBackpressureStrategy;
   }
 }
