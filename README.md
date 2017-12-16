@@ -199,17 +199,16 @@ Maven:
 <dependency>
     <groupId>br.com.thiaguten</groupId>
     <artifactId>rx-mqtt-paho</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```gradle
-compile 'br.com.thiaguten:rx-mqtt-paho:0.1.0'
+compile 'br.com.thiaguten:rx-mqtt-paho:0.1.1'
 ```
 
 ### Todos
 
- - Write more tests
  - Write javadocs
