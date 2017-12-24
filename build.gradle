@@ -14,7 +14,7 @@ allprojects {
     apply plugin: 'jacoco'
 
     group 'br.com.thiaguten'
-    version '0.2.0-SNAPSHOT'
+    version '0.1.2-SNAPSHOT'
 //    buildDir = "/mnt/ramdisk/${rootProject.name}/${project.name}"
 
     ext {
@@ -118,7 +118,7 @@ subprojects {
     }
 
     pmd {
-        toolVersion = '5.8.1'
+        toolVersion = '6.0.0'
         consoleOutput = true
         ignoreFailures = true
         sourceSets = [sourceSets.main]
