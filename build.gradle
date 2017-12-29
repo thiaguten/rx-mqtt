@@ -18,7 +18,7 @@ allprojects {
 //    buildDir = "/mnt/ramdisk/${rootProject.name}/${project.name}"
 
     ext {
-        jdkVersion = 1.8
+        jdkVersion = JavaVersion.VERSION_1_8
         repositoryName = 'rx-mqtt'
         repositoryOwner = 'thiaguten'
         isReleaseVersion = (project.version ==~ /(\d+\.\d+\.\d+)/)
@@ -53,25 +53,27 @@ subprojects {
 
     idea {
         module {
-            downloadSources = true
+            downloadSources = false
             downloadJavadoc = false
         }
     }
 
     tasks.withType(JavaCompile) {
-        options.encoding = 'UTF-8'
-        options.compilerArgs << '-Xlint:all'
-        options.fork = true
-        options.incremental = true
+        options.with {
+            encoding = 'UTF-8'
+            compilerArgs << '-Xlint:all'
+            fork = true
+            incremental = true
+        }
     }
 
     task wrapper(type: Wrapper) {
         description = 'Generates gradlew[.bat] scripts'
-        gradleVersion = '4.4'
+        gradleVersion = '4.4.1'
     }
 
     dependencies {
-        compile loggingDependecies.slf4j_api
+        compile libs.slf4j_api
     }
 
     license {
@@ -137,7 +139,7 @@ subprojects {
 
         reports {
             csv.enabled = false
-            html.enabled = true // human readable
+            html.enabled = true
             xml.enabled = true // coveralls plugin depends on xml format report
         }
     }

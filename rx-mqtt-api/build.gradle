@@ -2,5 +2,5 @@ description = "rx-mqtt-api"
 archivesBaseName = "rx-mqtt-api"
 
 dependencies {
-    compile projectDependencies.rx_java
+    compile libs.rx_java
 }

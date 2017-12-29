@@ -3,8 +3,8 @@ archivesBaseName = "rx-mqtt-paho"
 
 dependencies {
     compile project(":rx-mqtt-api")
-    compile projectDependencies.eclipse_paho
-    testCompile testDependencies.junit
-    testCompile testDependencies.mockito_core
-    testCompile testDependencies.assertj_core
+    compile libs.eclipse_paho
+    testCompile libs.junit
+    testCompile libs.mockito_core
+    testCompile libs.assertj_core
 }
