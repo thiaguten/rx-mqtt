@@ -247,7 +247,6 @@ public class PahoRxMqttClientSubscribeTest {
   public void whenClientOnIsCalledThenMessageArrives() throws Exception {
     int[] ids = {1};
     int[] qos = {2};
-    boolean retain = false;
     String[] topics = {"topic"};
     byte[] payload = "payload".getBytes();
 
@@ -266,7 +265,7 @@ public class PahoRxMqttClientSubscribeTest {
     MqttMessage expectedMessage = new MqttMessage(payload);
     expectedMessage.setId(ids[0]);
     expectedMessage.setQos(qos[0]);
-    expectedMessage.setRetained(retain);
+    expectedMessage.setRetained(false);
 
     PahoRxMqttMessage expectedRxMqttMessage = PahoRxMqttMessage.create(expectedMessage);
     expectedRxMqttMessage.setTopic(topics[0]);

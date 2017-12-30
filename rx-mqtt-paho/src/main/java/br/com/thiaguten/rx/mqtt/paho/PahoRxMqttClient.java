@@ -301,12 +301,12 @@ public class PahoRxMqttClient implements RxMqttClient {
 
     private final BiConsumer<String, MqttMessage> onMessageArrived;
 
-    public PahoMessageListener(BiConsumer<String, MqttMessage> onMessageArrived) {
+    PahoMessageListener(BiConsumer<String, MqttMessage> onMessageArrived) {
       this.onMessageArrived = onMessageArrived;
     }
 
     @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
+    public void messageArrived(String topic, MqttMessage message) {
       onMessageArrived.accept(topic, message);
     }
   }

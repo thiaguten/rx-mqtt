@@ -18,7 +18,7 @@ package br.com.thiaguten.rx.mqtt.api;
 
 public class RxMqttException extends RuntimeException {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 6374001815972669318L;
 
   public RxMqttException(String message, Throwable cause) {
     super(message, cause);

@@ -27,7 +27,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 public abstract class PahoRxMqttCallback implements RxMqttCallback, MqttCallbackExtended {
 
   @Override
-  public void messageArrived(String topic, MqttMessage message) throws Exception {
+  public void messageArrived(String topic, MqttMessage message) {
     // NOP
   }
 

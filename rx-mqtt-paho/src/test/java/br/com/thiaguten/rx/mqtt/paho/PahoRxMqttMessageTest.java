@@ -89,6 +89,26 @@ public class PahoRxMqttMessageTest {
   }
 
   @Test
+  public void whenAStringAndCharsetIsSuppliedThenCreateSuccessfully() {
+    String topic = "topic";
+    boolean retain = false;
+    String message = "message";
+    byte[] payload = message.getBytes();
+    Charset charset = StandardCharsets.ISO_8859_1;
+
+    PahoRxMqttMessage rxMqttMessage = PahoRxMqttMessage.create(message, charset);
+    rxMqttMessage.setTopic(topic);
+    assertThat(rxMqttMessage).isNotNull();
+
+    assertThat(rxMqttMessage.getId()).isZero();
+    assertThat(rxMqttMessage.getQoS()).isEqualTo(RxMqttQoS.EXACTLY_ONCE);
+    assertThat(rxMqttMessage.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage.toString()).isEqualTo(message);
+  }
+
+  @Test
   public void whenAStringAndQosIsSuppliedThenCreateSuccessfully() {
     String topic = "topic";
     boolean retain = false;
@@ -104,6 +124,27 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.getQoS()).isEqualTo(qos);
     assertThat(rxMqttMessage.getTopic()).isEqualTo(topic);
     assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage.toString()).isEqualTo(message);
+  }
+
+  @Test
+  public void whenAByteArrayAndQosIsSuppliedThenCreateSuccessfully() {
+    String topic = "topic";
+    boolean retain = false;
+    String message = "message";
+    byte[] payload = message.getBytes();
+    RxMqttQoS qos = RxMqttQoS.EXACTLY_ONCE;
+
+    PahoRxMqttMessage rxMqttMessage = PahoRxMqttMessage.create(payload, qos);
+    rxMqttMessage.setTopic(topic);
+    assertThat(rxMqttMessage).isNotNull();
+
+    assertThat(rxMqttMessage.getId()).isZero();
+    assertThat(rxMqttMessage.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage.toString()).isEqualTo(message);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
   }

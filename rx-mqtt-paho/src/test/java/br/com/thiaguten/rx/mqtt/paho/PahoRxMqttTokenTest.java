@@ -37,7 +37,7 @@ public class PahoRxMqttTokenTest {
 
   @Test(expected = NullPointerException.class)
   public void whenANullMqttTokenIsSuppliedThenAnExceptionIsThrown() {
-    new PahoRxMqttToken((IMqttToken) null);
+    new PahoRxMqttToken(null);
   }
 
   @Test
