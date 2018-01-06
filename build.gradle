@@ -28,7 +28,7 @@ allprojects {
     }
 
     jacoco {
-        toolVersion = '0.7.9'
+        toolVersion = '0.8.0'
     }
 
     repositories {
@@ -39,12 +39,12 @@ allprojects {
 
 subprojects {
     apply plugin: 'pmd'
-    apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'maven'
     apply plugin: 'signing'
     apply plugin: 'findbugs'
     apply plugin: 'checkstyle'
+    apply plugin: 'java-library'
     apply plugin: 'com.github.hierynomus.license'
     apply plugin: 'com.github.ben-manes.versions'
 
@@ -73,7 +73,9 @@ subprojects {
     }
 
     dependencies {
-        compile libs.slf4j_api
+        testImplementation libs.junit
+        testImplementation libs.mockito_core
+        testImplementation libs.assertj_core
     }
 
     license {

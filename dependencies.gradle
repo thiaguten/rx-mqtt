@@ -1,13 +1,9 @@
 ext {
-    slf4jVersion = "1.7.25"
-
     libs = [
             rx_java     : "io.reactivex.rxjava2:rxjava:2.1.8",
             eclipse_paho: "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0",
-            slf4j_api: "org.slf4j:slf4j-api:${slf4jVersion}",
-            slf4j_jul: "org.slf4j:jul-to-slf4j:${slf4jVersion}",
             junit       : "junit:junit:4.12",
             mockito_core: "org.mockito:mockito-core:2.13.0",
-            assertj_core : "org.assertj:assertj-core:3.8.0"
+            assertj_core: "org.assertj:assertj-core:3.9.0"
     ]
 }

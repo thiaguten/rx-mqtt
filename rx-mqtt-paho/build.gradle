@@ -2,9 +2,6 @@ description "rx-mqtt-paho"
 archivesBaseName = "rx-mqtt-paho"
 
 dependencies {
-    compile project(":rx-mqtt-api")
-    compile libs.eclipse_paho
-    testCompile libs.junit
-    testCompile libs.mockito_core
-    testCompile libs.assertj_core
+    api project(":rx-mqtt-api")
+    api libs.eclipse_paho
 }
