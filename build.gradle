@@ -183,7 +183,7 @@ subprojects {
 
     signing {
         required { isReleaseVersion && gradle.taskGraph.hasTask('uploadArchives') }
-        useGpgCmd()
+        //useGpgCmd()
         sign configurations.archives
     }
 
