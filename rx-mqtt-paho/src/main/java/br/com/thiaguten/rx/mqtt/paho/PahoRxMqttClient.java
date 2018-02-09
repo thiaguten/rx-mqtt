@@ -117,18 +117,28 @@ public class PahoRxMqttClient implements RxMqttClient {
   }
 
   @Override
+  public Single<RxMqttToken> publish(String topic, byte[] message) {
+    return publish(topic, PahoRxMqttMessage.create(message));
+  }
+
+  @Override
+  public Single<RxMqttToken> publish(String topic, byte[] message, int qos) {
+    return publish(topic, PahoRxMqttMessage.create(message, qos));
+  }
+
+  @Override
+  public Single<RxMqttToken> publish(String topic, String message) {
+    return publish(topic, PahoRxMqttMessage.create(message));
+  }
+
+  @Override
+  public Single<RxMqttToken> publish(String topic, String message, int qos) {
+    return publish(topic, PahoRxMqttMessage.create(message, qos));
+  }
+
+  @Override
   public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos) {
     return on(topics, qos, globalBackpressureStrategy);
-  }
-
-  @Override
-  public Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos) {
-    return on(new String[]{topic}, new RxMqttQoS[]{qos});
-  }
-
-  @Override
-  public Flowable<RxMqttMessage> on(String topic) {
-    return on(topic, RxMqttQoS.EXACTLY_ONCE);
   }
 
   @Override
@@ -143,16 +153,6 @@ public class PahoRxMqttClient implements RxMqttClient {
       int[] qos = Arrays.stream(rxMqttQos).mapToInt(RxMqttQoS::value).toArray();
       client.subscribe(topics, qos, null, newActionListener(emitter), messageListeners);
     }, strategy);
-  }
-
-  @Override
-  public Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, BackpressureStrategy strategy) {
-    return on(new String[]{topic}, new RxMqttQoS[]{qos}, strategy);
-  }
-
-  @Override
-  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy) {
-    return on(topic, RxMqttQoS.EXACTLY_ONCE, strategy);
   }
 
   @Override

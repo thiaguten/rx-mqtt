@@ -44,6 +44,11 @@ public class PahoRxMqttMessageTest {
     PahoRxMqttMessage.create((byte[]) null);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void whenAInvalidQosIsSuppliedThenAnExceptionIsThrown() {
+    PahoRxMqttMessage.create(new byte[0], 10);
+  }
+
   @Test
   public void whenAMessageIsSuppliedThenCreateSuccessfully() {
     int id = 1;
@@ -126,6 +131,17 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
+
+    PahoRxMqttMessage rxMqttMessage2 = PahoRxMqttMessage.create(message, 2);
+    rxMqttMessage2.setTopic(topic);
+    assertThat(rxMqttMessage2).isNotNull();
+
+    assertThat(rxMqttMessage2.getId()).isZero();
+    assertThat(rxMqttMessage2.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage2.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage2.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage2.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
   }
 
   @Test
@@ -147,6 +163,18 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
+
+    PahoRxMqttMessage rxMqttMessage2 = PahoRxMqttMessage.create(payload, 2);
+    rxMqttMessage2.setTopic(topic);
+    assertThat(rxMqttMessage2).isNotNull();
+
+    assertThat(rxMqttMessage2.getId()).isZero();
+    assertThat(rxMqttMessage2.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage2.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage2.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
+    assertThat(rxMqttMessage2.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
   }
 
   @Test
@@ -168,6 +196,17 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
+
+    PahoRxMqttMessage rxMqttMessage2 = PahoRxMqttMessage.create(message, charset, 2);
+    rxMqttMessage2.setTopic(topic);
+    assertThat(rxMqttMessage2).isNotNull();
+
+    assertThat(rxMqttMessage2.getId()).isZero();
+    assertThat(rxMqttMessage2.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage2.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage2.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage2.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
   }
 
   @Test
@@ -188,6 +227,17 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
+
+    PahoRxMqttMessage rxMqttMessage2 = PahoRxMqttMessage.create(message, 2, retain);
+    rxMqttMessage2.setTopic(topic);
+    assertThat(rxMqttMessage2).isNotNull();
+
+    assertThat(rxMqttMessage2.getId()).isZero();
+    assertThat(rxMqttMessage2.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage2.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage2.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage2.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
   }
 
   @Test
@@ -209,5 +259,16 @@ public class PahoRxMqttMessageTest {
     assertThat(rxMqttMessage.getPayload()).isEqualTo(payload);
     assertThat(rxMqttMessage.isRetained()).isEqualTo(retain);
     assertThat(rxMqttMessage.toString()).isEqualTo(message);
+
+    PahoRxMqttMessage rxMqttMessage2 = PahoRxMqttMessage.create(message, charset, 2, retain);
+    rxMqttMessage2.setTopic(topic);
+    assertThat(rxMqttMessage2).isNotNull();
+
+    assertThat(rxMqttMessage2.getId()).isZero();
+    assertThat(rxMqttMessage2.getQoS()).isEqualTo(qos);
+    assertThat(rxMqttMessage2.getTopic()).isEqualTo(topic);
+    assertThat(rxMqttMessage2.getPayload()).isEqualTo(payload);
+    assertThat(rxMqttMessage2.isRetained()).isEqualTo(retain);
+    assertThat(rxMqttMessage2.toString()).isEqualTo(message);
   }
 }

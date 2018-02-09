@@ -57,7 +57,7 @@ public class PahoRxMqttClientPublishTest {
   @Test(expected = NullPointerException.class)
   public void whenNullMessageIsPassedThenThrowsAnError() {
     PahoRxMqttClient rxClient = PahoRxMqttClient.builder("tcp://localhost:1883").build();
-    rxClient.publish("topic", null).blockingGet();
+    rxClient.publish("topic", (RxMqttMessage) null).blockingGet();
   }
 
   @Test(expected = IllegalArgumentException.class)

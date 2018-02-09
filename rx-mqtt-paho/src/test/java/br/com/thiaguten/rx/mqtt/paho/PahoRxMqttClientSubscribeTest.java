@@ -63,7 +63,7 @@ public class PahoRxMqttClientSubscribeTest {
   public void whenANullQoSIsSuppliedThenAnExceptionIsThrown() {
     String[] topics = { "topic1", "topic2", "topic2" };
     RxMqttClient rxClient = PahoRxMqttClient.builder("tcp://localhost:1883").build();
-    rxClient.on(topics, null).blockingFirst();
+    rxClient.on(topics, (RxMqttQoS[]) null).blockingFirst();
   }
 
   @Test(expected = NullPointerException.class)

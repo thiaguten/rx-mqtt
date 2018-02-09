@@ -32,8 +32,16 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     this(payload, RxMqttQoS.EXACTLY_ONCE);
   }
 
+  public PahoRxMqttMessage(byte[] payload, int qos) {
+    this(payload, RxMqttQoS.valueOf(qos), false);
+  }
+
   public PahoRxMqttMessage(byte[] payload, RxMqttQoS qos) {
     this(payload, qos, false);
+  }
+
+  public PahoRxMqttMessage(byte[] payload, int qos, boolean retained) {
+    this(payload, RxMqttQoS.valueOf(qos), retained);
   }
 
   public PahoRxMqttMessage(byte[] payload, RxMqttQoS qos, boolean retained) {
@@ -99,7 +107,15 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     return create(payload, StandardCharsets.UTF_8, qos);
   }
 
+  public static PahoRxMqttMessage create(String payload, int qos) {
+    return create(payload, StandardCharsets.UTF_8, qos);
+  }
+
   public static PahoRxMqttMessage create(String payload, RxMqttQoS qos, boolean retained) {
+    return create(payload, StandardCharsets.UTF_8, qos, retained);
+  }
+
+  public static PahoRxMqttMessage create(String payload, int qos, boolean retained) {
     return create(payload, StandardCharsets.UTF_8, qos, retained);
   }
 
@@ -111,8 +127,17 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     return create(payload.getBytes(charset), qos);
   }
 
+  public static PahoRxMqttMessage create(String payload, Charset charset, int qos) {
+    return create(payload.getBytes(charset), qos);
+  }
+
   public static PahoRxMqttMessage create(
       String payload, Charset charset, RxMqttQoS qos, boolean retained) {
+    return create(payload.getBytes(charset), qos, retained);
+  }
+
+  public static PahoRxMqttMessage create(
+      String payload, Charset charset, int qos, boolean retained) {
     return create(payload.getBytes(charset), qos, retained);
   }
 
@@ -124,8 +149,15 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     return new PahoRxMqttMessage(payload, qos);
   }
 
+  public static PahoRxMqttMessage create(byte[] payload, int qos) {
+    return new PahoRxMqttMessage(payload, qos);
+  }
+
   public static PahoRxMqttMessage create(byte[] payload, RxMqttQoS qos, boolean retained) {
     return new PahoRxMqttMessage(payload, qos, retained);
   }
 
+  public static PahoRxMqttMessage create(byte[] payload, int qos, boolean retained) {
+    return new PahoRxMqttMessage(payload, qos, retained);
+  }
 }

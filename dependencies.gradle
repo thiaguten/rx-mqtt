@@ -1,6 +1,6 @@
 ext {
     libs = [
-            rx_java     : "io.reactivex.rxjava2:rxjava:2.1.8",
+            rx_java     : "io.reactivex.rxjava2:rxjava:2.1.9",
             eclipse_paho: "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0",
             junit       : "junit:junit:4.12",
             mockito_core: "org.mockito:mockito-core:2.13.0",

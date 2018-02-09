@@ -69,7 +69,7 @@ subprojects {
 
     task wrapper(type: Wrapper) {
         description = 'Generates gradlew[.bat] scripts'
-        gradleVersion = '4.5'
+        gradleVersion = '4.5.1'
     }
 
     dependencies {
@@ -92,7 +92,7 @@ subprojects {
     }
 
     checkstyle {
-        toolVersion = '8.7'
+        toolVersion = '8.8'
         showViolations = true
         ignoreFailures = false
         sourceSets = [sourceSets.main]

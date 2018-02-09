@@ -20,6 +20,7 @@ import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import java.util.Arrays;
 import java.util.Optional;
 
 public interface RxMqttClient {
@@ -36,19 +37,56 @@ public interface RxMqttClient {
 
   Single<RxMqttToken> publish(String topic, RxMqttMessage message);
 
+  Single<RxMqttToken> publish(String topic, byte[] message);
+
+  Single<RxMqttToken> publish(String topic, byte[] message, int qos);
+
+  Single<RxMqttToken> publish(String topic, String message);
+
+  Single<RxMqttToken> publish(String topic, String message, int qos);
+
   Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos);
 
-  Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos);
+  default Flowable<RxMqttMessage> on(String[] topics, int[] qos) {
+    return on(topics, Arrays.stream(qos).boxed().map(RxMqttQoS::valueOf).toArray(RxMqttQoS[]::new));
+  }
 
-  Flowable<RxMqttMessage> on(String topic);
+  default Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos) {
+    return on(new String[]{topic}, new RxMqttQoS[]{qos});
+  }
+
+  default Flowable<RxMqttMessage> on(String topic, int qos) {
+    return on(topic, RxMqttQoS.valueOf(qos));
+  }
+
+  default Flowable<RxMqttMessage> on(String topic) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE);
+  }
 
   Flowable<RxMqttMessage> on(
       String[] topics, RxMqttQoS[] qos, BackpressureStrategy backpressureStrategy);
 
-  Flowable<RxMqttMessage> on(
-      String topic, RxMqttQoS qos, BackpressureStrategy backpressureStrategy);
+  default Flowable<RxMqttMessage> on(
+      String[] topics, int[] qos, BackpressureStrategy backpressureStrategy) {
+    return on(
+        topics,
+        Arrays.stream(qos).boxed().map(RxMqttQoS::valueOf).toArray(RxMqttQoS[]::new),
+        backpressureStrategy);
+  }
 
-  Flowable<RxMqttMessage> on(String topic, BackpressureStrategy backpressureStrategy);
+  default Flowable<RxMqttMessage> on(
+      String topic, RxMqttQoS qos, BackpressureStrategy backpressureStrategy) {
+    return on(new String[]{topic}, new RxMqttQoS[]{qos}, backpressureStrategy);
+  }
+
+  default Flowable<RxMqttMessage> on(
+      String topic, int qos, BackpressureStrategy backpressureStrategy) {
+    return on(topic, RxMqttQoS.valueOf(qos), backpressureStrategy);
+  }
+
+  default Flowable<RxMqttMessage> on(String topic, BackpressureStrategy backpressureStrategy) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE, backpressureStrategy);
+  }
 
   Single<RxMqttToken> off(String... topic);
 
