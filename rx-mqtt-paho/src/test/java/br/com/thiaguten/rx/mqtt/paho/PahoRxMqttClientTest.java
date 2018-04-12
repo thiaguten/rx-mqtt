@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
@@ -48,43 +47,63 @@ public class PahoRxMqttClientTest {
   @Test
   public void whenClientCreateIsCalledThenCreateSuccessfully() throws MqttException {
     String brokerUri = "tcp://localhost:1883";
-    IMqttAsyncClient client = new MqttAsyncClient(brokerUri, "clientId");
+    IMqttAsyncClient client = new MqttAsyncClient(brokerUri, "pahoRx");
 
     BackpressureStrategy backpressureStrategy = BackpressureStrategy.LATEST;
     MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+    mqttConnectOptions.setAutomaticReconnect(true);
     PahoRxMqttCallback pahoCallback =
         PahoRxMqttCallback.create(cause -> {/*NOP*/}, (reconnect, serverUri) -> {/*NOP*/});
 
     // create by mqtt connect options only
-    PahoRxMqttClient pahoRxMqttClient = PahoRxMqttClient.create(mqttConnectOptions,
-        connectOptions -> {
-          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(client)
-              .setBackpressureStrategy(backpressureStrategy);
-          Optional.ofNullable(connectOptions).ifPresent(builder::setConnectOptions);
-          return builder.build();
-        });
+    PahoRxMqttClient pahoRxMqttClient = PahoRxMqttClient.builder(client)
+        .setConnectOptions(mqttConnectOptions)
+        .build();
+
     assertThat(pahoRxMqttClient).isNotNull();
     assertThat(pahoRxMqttClient.getClient()).isEqualTo(client);
     assertThat(pahoRxMqttClient.getCallback()).isNotEqualTo(pahoCallback);
     assertThat(pahoRxMqttClient.getServerUri().blockingGet()).isEqualTo(brokerUri);
     assertThat(pahoRxMqttClient.getConnectOptions()).isEqualTo(mqttConnectOptions);
-    assertThat(pahoRxMqttClient.getBackpressureStrategy()).isEqualTo(backpressureStrategy);
+    assertThat(pahoRxMqttClient.getBackpressureStrategy()).isNotEqualTo(backpressureStrategy);
 
-    // create by mqtt connect options and paho mqtt callback
-    PahoRxMqttClient pahoRxMqttClient2 = PahoRxMqttClient.create(mqttConnectOptions, pahoCallback,
-        (connectOptions, callback) -> {
-          PahoRxMqttClient.Builder builder = PahoRxMqttClient.builder(client)
-              .setBackpressureStrategy(backpressureStrategy);
-          Optional.ofNullable(connectOptions).ifPresent(builder::setConnectOptions);
-          Optional.ofNullable(callback).ifPresent(builder::setCallbackListener);
-          return builder.build();
-        });
+    // create by mqtt callback only
+    PahoRxMqttClient pahoRxMqttClient2 = PahoRxMqttClient.builder(client)
+        .setCallbackListener(pahoCallback)
+        .build();
+
     assertThat(pahoRxMqttClient2).isNotNull();
     assertThat(pahoRxMqttClient2.getClient()).isEqualTo(client);
     assertThat(pahoRxMqttClient2.getCallback()).isEqualTo(pahoCallback);
     assertThat(pahoRxMqttClient2.getServerUri().blockingGet()).isEqualTo(brokerUri);
-    assertThat(pahoRxMqttClient2.getConnectOptions()).isEqualTo(mqttConnectOptions);
-    assertThat(pahoRxMqttClient2.getBackpressureStrategy()).isEqualTo(backpressureStrategy);
+    assertThat(pahoRxMqttClient2.getConnectOptions()).isNotEqualTo(mqttConnectOptions);
+    assertThat(pahoRxMqttClient2.getBackpressureStrategy()).isNotEqualTo(backpressureStrategy);
+
+    // create by rx backpressure only
+    PahoRxMqttClient pahoRxMqttClient3 = PahoRxMqttClient.builder(client)
+        .setBackpressureStrategy(backpressureStrategy)
+        .build();
+
+    assertThat(pahoRxMqttClient3).isNotNull();
+    assertThat(pahoRxMqttClient3.getClient()).isEqualTo(client);
+    assertThat(pahoRxMqttClient3.getCallback()).isNotEqualTo(pahoCallback);
+    assertThat(pahoRxMqttClient3.getServerUri().blockingGet()).isEqualTo(brokerUri);
+    assertThat(pahoRxMqttClient3.getConnectOptions()).isNotEqualTo(mqttConnectOptions);
+    assertThat(pahoRxMqttClient3.getBackpressureStrategy()).isEqualTo(backpressureStrategy);
+
+    // create by mqtt connect options, mqtt callback and backpressure
+    PahoRxMqttClient pahoRxMqttClient4 = PahoRxMqttClient.builder(client)
+        .setConnectOptions(mqttConnectOptions)
+        .setCallbackListener(pahoCallback)
+        .setBackpressureStrategy(backpressureStrategy)
+        .build();
+
+    assertThat(pahoRxMqttClient4).isNotNull();
+    assertThat(pahoRxMqttClient4.getClient()).isEqualTo(client);
+    assertThat(pahoRxMqttClient4.getCallback()).isEqualTo(pahoCallback);
+    assertThat(pahoRxMqttClient4.getServerUri().blockingGet()).isEqualTo(brokerUri);
+    assertThat(pahoRxMqttClient4.getConnectOptions()).isEqualTo(mqttConnectOptions);
+    assertThat(pahoRxMqttClient4.getBackpressureStrategy()).isEqualTo(backpressureStrategy);
   }
 
   @Test(expected = NullPointerException.class)
@@ -193,7 +212,8 @@ public class PahoRxMqttClientTest {
         new MqttDefaultFilePersistence(tempDir.getAbsolutePath());
 
     // build by broker uri, client id and persistence
-    PahoRxMqttClient rxClient = PahoRxMqttClient.builder(brokerUri, clientId, clientPersistence).build();
+    PahoRxMqttClient rxClient = PahoRxMqttClient.builder(brokerUri, clientId, clientPersistence)
+        .build();
     assertThat(rxClient).isNotNull();
     assertThat(rxClient.isConnected().blockingGet()).isFalse();
 
@@ -221,7 +241,8 @@ public class PahoRxMqttClientTest {
     MqttClientPersistence clientPersistence =
         new MqttDefaultFilePersistence(tempFile.getAbsolutePath());
 
-    PahoRxMqttClient rxClient = PahoRxMqttClient.builder("tcp://localhost:1883", "pahoClientId", clientPersistence).build();
+    PahoRxMqttClient rxClient = PahoRxMqttClient
+        .builder("tcp://localhost:1883", "pahoClientId", clientPersistence).build();
     assertThat(rxClient).isNotNull();
     assertThat(rxClient.isConnected().blockingGet()).isFalse();
 

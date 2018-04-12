@@ -32,9 +32,7 @@ import io.reactivex.Single;
 import io.reactivex.SingleEmitter;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
@@ -222,19 +220,6 @@ public class PahoRxMqttClient implements RxMqttClient {
 
   public static Builder builder(IMqttAsyncClient client) {
     return new Builder(client);
-  }
-
-  public static PahoRxMqttClient create(
-      MqttConnectOptions connectOptions, Function<MqttConnectOptions, PahoRxMqttClient> f) {
-    return f.apply(connectOptions);
-  }
-
-  public static PahoRxMqttClient create(
-      MqttConnectOptions connectOptions, PahoRxMqttCallback callback,
-      BiFunction<MqttConnectOptions, PahoRxMqttCallback, PahoRxMqttClient> f) {
-    requireNonNull(connectOptions);
-    requireNonNull(callback);
-    return f.apply(connectOptions, callback);
   }
 
   // internal methods
