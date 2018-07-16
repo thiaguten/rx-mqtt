@@ -52,8 +52,13 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     return topic;
   }
 
-  public void setTopic(String topic) {
+  void setTopic(String topic) {
     this.topic = topic;
+  }
+
+  //@VisibleForTesting - using the same package in test  for test visibility
+  MqttMessage getMqttMessage() {
+    return mqttMessage;
   }
 
   @Override
@@ -81,11 +86,11 @@ public class PahoRxMqttMessage implements RxMqttMessage {
     return mqttMessage.toString();
   }
 
-  public MqttMessage getMqttMessage() {
-    return mqttMessage;
-  }
-
   // convenient methods
+
+  public static PahoRxMqttMessage create() {
+    return create(new byte[0]);
+  }
 
   public static PahoRxMqttMessage create(MqttMessage message) {
     return new PahoRxMqttMessage(message);
