@@ -14,7 +14,7 @@ allprojects {
     apply plugin: 'jacoco'
 
     group 'br.com.thiaguten'
-    version '0.1.3-SNAPSHOT'
+    version '0.1.4-SNAPSHOT'
 //    buildDir = "/mnt/ramdisk/${rootProject.name}/${project.name}"
 
     ext {
