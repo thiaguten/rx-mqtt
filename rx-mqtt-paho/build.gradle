@@ -1,4 +1,4 @@
-description "rx-mqtt-paho"
+description "Rx MQTT Implementation for Eclipse Paho Java Client"
 archivesBaseName = "rx-mqtt-paho"
 
 dependencies {

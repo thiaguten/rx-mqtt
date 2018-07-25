@@ -1,4 +1,4 @@
-description = "rx-mqtt-api"
+description = "Rx MQTT API"
 archivesBaseName = "rx-mqtt-api"
 
 dependencies {
