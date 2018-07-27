@@ -225,7 +225,8 @@ public class PahoRxMqttClientPublishTest {
     assertThat(emitterThrowableArgumentCaptor).isNotNull();
     assertThat(emitterThrowableArgumentCaptor.getValue()).isExactlyInstanceOf(PahoRxMqttException.class);
     assertThat(emitterThrowableArgumentCaptor.getValue()).hasCauseExactlyInstanceOf(PahoRxMqttException.class);
-    assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isEqualTo(token);
+    //assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isEqualTo(token);
+    assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isNull();
     verifyNoMoreInteractions(emitter);
   }
 

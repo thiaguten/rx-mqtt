@@ -115,8 +115,25 @@ public class PahoRxMqttClient implements RxMqttClient {
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos) {
-    return on(topics, qos, globalBackpressureStrategy);
+  public Flowable<RxMqttMessage> on(String topic) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String topic, Consumer<RxMqttToken> doOnComplete) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE, doOnComplete);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String[] topics) {
+    return on(topics, Stream.generate(() -> RxMqttQoS.EXACTLY_ONCE)
+        .limit(topics.length).toArray(RxMqttQoS[]::new));
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String[] topics, Consumer<RxMqttToken> doOnComplete) {
+    return on(topics, Stream.generate(() -> RxMqttQoS.EXACTLY_ONCE)
+        .limit(topics.length).toArray(RxMqttQoS[]::new), doOnComplete);
   }
 
   @Override
@@ -125,22 +142,31 @@ public class PahoRxMqttClient implements RxMqttClient {
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(String topic) {
-    return on(topic, RxMqttQoS.EXACTLY_ONCE);
+  public Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos,
+      Consumer<RxMqttToken> doOnComplete) {
+    return on(new String[]{topic}, new RxMqttQoS[]{qos}, doOnComplete);
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(
-      String[] topics, RxMqttQoS[] rxMqttQos, BackpressureStrategy strategy) {
-    return Flowable.create(emitter -> {
-      // creates a message listener for each filter topic
-      IMqttMessageListener[] messageListeners = Stream.generate(() -> newMessageListener(emitter))
-          .limit(topics.length)
-          .toArray(IMqttMessageListener[]::new);
-      // converts each RxMqttQoS to primitive integer
-      int[] qos = Arrays.stream(rxMqttQos).mapToInt(RxMqttQoS::value).toArray();
-      client.subscribe(topics, qos, null, newActionListener(emitter), messageListeners);
-    }, strategy);
+  public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos) {
+    return on(topics, qos, globalBackpressureStrategy);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos,
+      Consumer<RxMqttToken> doOnComplete) {
+    return on(topics, qos, globalBackpressureStrategy, doOnComplete);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE, strategy);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete) {
+    return on(topic, RxMqttQoS.EXACTLY_ONCE, strategy, doOnComplete);
   }
 
   @Override
@@ -149,8 +175,27 @@ public class PahoRxMqttClient implements RxMqttClient {
   }
 
   @Override
-  public Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy) {
-    return on(topic, RxMqttQoS.EXACTLY_ONCE, strategy);
+  public Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete) {
+    return on(new String[]{topic}, new RxMqttQoS[]{qos}, strategy, doOnComplete);
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(
+      String[] topics, RxMqttQoS[] rxMqttQos, BackpressureStrategy strategy) {
+    return on(topics, rxMqttQos, strategy, token -> { /* NOP */ });
+  }
+
+  @Override
+  public Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete) {
+    return Flowable.create(emitter -> {
+      int[] qosInt = Arrays.stream(qos).mapToInt(RxMqttQoS::value).toArray();
+      IMqttActionListener actionListener = newActionListener(emitter, doOnComplete);
+      IMqttMessageListener[] messageListeners = Stream.generate(() -> newMessageListener(emitter))
+          .limit(topics.length).toArray(IMqttMessageListener[]::new);
+      client.subscribe(topics, qosInt, null, actionListener, messageListeners);
+    }, strategy);
   }
 
   @Override
@@ -222,24 +267,27 @@ public class PahoRxMqttClient implements RxMqttClient {
     return new Builder(client);
   }
 
-  // internal methods
+  // convenient internal methods
 
-  static IMqttActionListener newActionListener(FlowableEmitter<RxMqttMessage> emitter) {
-    Consumer<IMqttToken> onNext = token -> { /* NOP */ };
-    BiConsumer<IMqttToken, Throwable> onFailure = (token, exception) ->
-        emitter.onError(new PahoRxMqttException(exception, token));
-    return newActionListener(onNext, onFailure);
-  }
-
-  static IMqttActionListener newActionListener(SingleEmitter<RxMqttToken> emitter) {
-    Consumer<IMqttToken> onSuccess = token -> emitter.onSuccess(new PahoRxMqttToken(token));
-    BiConsumer<IMqttToken, Throwable> onFailure = (token, exception) ->
-        emitter.onError(new PahoRxMqttException(exception, token));
+  static IMqttActionListener newActionListener(
+      FlowableEmitter<RxMqttMessage> emitter, Consumer<RxMqttToken> onSuccess) {
+    BiConsumer<RxMqttToken, Throwable> onFailure = (token, exception) ->
+        emitter.onError(new PahoRxMqttException(exception));
     return newActionListener(onSuccess, onFailure);
   }
 
-  static IMqttActionListener newActionListener(
-      Consumer<IMqttToken> onSuccess, BiConsumer<IMqttToken, Throwable> onFailure) {
+  static IMqttActionListener newActionListener(FlowableEmitter<RxMqttMessage> emitter) {
+    return newActionListener(emitter, token -> { /* NOP */ });
+  }
+
+  static IMqttActionListener newActionListener(SingleEmitter<RxMqttToken> emitter) {
+    BiConsumer<RxMqttToken, Throwable> onFailure = (token, exception) ->
+        emitter.onError(new PahoRxMqttException(exception));
+    return newActionListener(emitter::onSuccess, onFailure);
+  }
+
+  private static IMqttActionListener newActionListener(
+      Consumer<RxMqttToken> onSuccess, BiConsumer<RxMqttToken, Throwable> onFailure) {
     return new PahoActionListener(onSuccess, onFailure);
   }
 
@@ -252,7 +300,8 @@ public class PahoRxMqttClient implements RxMqttClient {
     return newMessageListener(onMessageArrived);
   }
 
-  static IMqttMessageListener newMessageListener(BiConsumer<String, MqttMessage> onMessageArrived) {
+  private static IMqttMessageListener newMessageListener(
+      BiConsumer<String, MqttMessage> onMessageArrived) {
     return new PahoMessageListener(onMessageArrived);
   }
 
@@ -260,23 +309,23 @@ public class PahoRxMqttClient implements RxMqttClient {
 
   private static class PahoActionListener implements IMqttActionListener {
 
-    private final Consumer<IMqttToken> onSuccess;
-    private final BiConsumer<IMqttToken, Throwable> onFailure;
+    private final Consumer<RxMqttToken> onSuccess;
+    private final BiConsumer<RxMqttToken, Throwable> onFailure;
 
     PahoActionListener(
-        Consumer<IMqttToken> onSuccess, BiConsumer<IMqttToken, Throwable> onFailure) {
+        Consumer<RxMqttToken> onSuccess, BiConsumer<RxMqttToken, Throwable> onFailure) {
       this.onSuccess = onSuccess;
       this.onFailure = onFailure;
     }
 
     @Override
     public void onSuccess(IMqttToken asyncActionToken) {
-      onSuccess.accept(asyncActionToken);
+      onSuccess.accept(new PahoRxMqttToken(asyncActionToken));
     }
 
     @Override
     public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-      onFailure.accept(asyncActionToken, exception);
+      onFailure.accept(new PahoRxMqttToken(asyncActionToken), exception);
     }
   }
 

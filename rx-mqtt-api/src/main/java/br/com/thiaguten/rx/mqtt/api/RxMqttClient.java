@@ -20,7 +20,7 @@ import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import java.util.Optional;
+import java.util.function.Consumer;
 
 public interface RxMqttClient {
 
@@ -36,19 +36,36 @@ public interface RxMqttClient {
 
   Single<RxMqttToken> publish(String topic, RxMqttMessage message);
 
-  Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos);
+  Flowable<RxMqttMessage> on(String topic);
+
+  Flowable<RxMqttMessage> on(String topic, Consumer<RxMqttToken> doOnComplete);
+
+  Flowable<RxMqttMessage> on(String[] topics);
+
+  Flowable<RxMqttMessage> on(String[] topics, Consumer<RxMqttToken> doOnComplete);
 
   Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos);
 
-  Flowable<RxMqttMessage> on(String topic);
+  Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, Consumer<RxMqttToken> doOnComplete);
 
-  Flowable<RxMqttMessage> on(
-      String[] topics, RxMqttQoS[] qos, BackpressureStrategy backpressureStrategy);
+  Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos);
 
-  Flowable<RxMqttMessage> on(
-      String topic, RxMqttQoS qos, BackpressureStrategy backpressureStrategy);
+  Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos, Consumer<RxMqttToken> doOnComplete);
 
-  Flowable<RxMqttMessage> on(String topic, BackpressureStrategy backpressureStrategy);
+  Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy);
+
+  Flowable<RxMqttMessage> on(String topic, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete);
+
+  Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, BackpressureStrategy strategy);
+
+  Flowable<RxMqttMessage> on(String topic, RxMqttQoS qos, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete);
+
+  Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos, BackpressureStrategy strategy);
+
+  Flowable<RxMqttMessage> on(String[] topics, RxMqttQoS[] qos, BackpressureStrategy strategy,
+      Consumer<RxMqttToken> doOnComplete);
 
   Single<RxMqttToken> off(String... topic);
 
@@ -57,15 +74,15 @@ public interface RxMqttClient {
   Completable disconnectForcibly();
 
   default Completable offAndClose(String... topics) {
-    Optional.ofNullable(topics)
-        .filter(tps -> isConnected().blockingGet())
-        .ifPresent(tps -> {
-          off(tps).blockingGet();
-          disconnect()
-              .doOnError(disconnectError -> disconnectForcibly().blockingAwait())
-              .blockingGet();
-        });
-    return close();
+    Completable close = close();
+    Completable disconnForcibly = disconnectForcibly().onErrorResumeNext(e -> close);
+    Completable disconnect = disconnect().ignoreElement();
+    Completable off = off(topics).ignoreElement().onErrorResumeNext(e -> disconnect);
+
+    return isConnected()
+        .flatMapCompletable(connected -> connected ? off : close)
+        .andThen(disconnect).onErrorResumeNext(e -> disconnForcibly)
+        .andThen(close);
   }
 
 }

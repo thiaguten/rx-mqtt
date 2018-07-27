@@ -17,8 +17,6 @@
 package br.com.thiaguten.rx.mqtt.paho;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -81,7 +79,7 @@ public class PahoRxMqttClientUnsubscribeTest {
 
     when(client.isConnected()).thenReturn(true);
     verify(client).unsubscribe(same(topics), isNull(), any(IMqttActionListener.class));
-    assertTrue(rxClient.isConnected().blockingGet());
+    assertThat(rxClient.isConnected().blockingGet()).isTrue();
     verify(client).isConnected();
     verifyNoMoreInteractions(client);
 
@@ -133,7 +131,7 @@ public class PahoRxMqttClientUnsubscribeTest {
 
     when(client.isConnected()).thenReturn(false);
     verify(client).unsubscribe(same(topics), isNull(), any(IMqttActionListener.class));
-    assertFalse(rxClient.isConnected().blockingGet());
+    assertThat(rxClient.isConnected().blockingGet()).isFalse();
     verify(client).isConnected();
     verifyNoMoreInteractions(client);
 
@@ -149,7 +147,8 @@ public class PahoRxMqttClientUnsubscribeTest {
     assertThat(emitterThrowableArgumentCaptor).isNotNull();
     assertThat(emitterThrowableArgumentCaptor.getValue()).isExactlyInstanceOf(PahoRxMqttException.class);
     assertThat(emitterThrowableArgumentCaptor.getValue()).hasCauseExactlyInstanceOf(PahoRxMqttException.class);
-    assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isEqualTo(token);
+    //assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isEqualTo(token);
+    assertThat(emitterThrowableArgumentCaptor.getValue().getToken()).isNull();
     verifyNoMoreInteractions(emitter);
   }
 
@@ -174,7 +173,7 @@ public class PahoRxMqttClientUnsubscribeTest {
     }
 
     when(client.isConnected()).thenReturn(true);
-    assertTrue(rxClient.isConnected().blockingGet());
+    assertThat(rxClient.isConnected().blockingGet()).isTrue();
 
     verify(client, times(times)).unsubscribe(same(topics), isNull(), any(IMqttActionListener.class));
     verify(client).isConnected();
@@ -195,11 +194,9 @@ public class PahoRxMqttClientUnsubscribeTest {
     testObserver.assertSubscribed();
     testObserver.assertNoErrors();
 
-    when(client.isConnected()).thenReturn(false);
-    assertFalse(rxClient.isConnected().blockingGet());
-
     verify(client).close();
-    verify(client, times(2)).isConnected();
+    verify(client).disconnect(isNull(), any(IMqttActionListener.class));
+    verify(client).isConnected();
     verifyNoMoreInteractions(client);
   }
 
