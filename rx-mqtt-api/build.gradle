@@ -1,5 +1,5 @@
 description = "Rx MQTT API"
-archivesBaseName = "rx-mqtt-api"
+//archivesBaseName = "rx-mqtt-api"
 
 dependencies {
     api libs.rx_java

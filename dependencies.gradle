@@ -1,9 +1,9 @@
 ext {
     libs = [
-            rx_java     : "io.reactivex.rxjava2:rxjava:2.1.17",
+            rx_java     : "io.reactivex.rxjava2:rxjava:2.2.0",
             eclipse_paho: "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0",
             junit       : "junit:junit:4.12",
-            mockito_core: "org.mockito:mockito-core:2.20.1",
+            mockito_core: "org.mockito:mockito-core:2.21.0",
             assertj_core: "org.assertj:assertj-core:3.10.0"
     ]
 }

@@ -1,27 +1,24 @@
 plugins {
-    // Add plugin, but do not apply it.
     id 'com.github.hierynomus.license' version '0.14.0' apply false
     id 'com.github.ben-manes.versions' version '0.20.0' apply false
-    id 'com.github.kt3k.coveralls' version '2.8.2' apply false
+    id 'com.github.kt3k.coveralls' version '2.8.2'
 }
 
 apply from: "$rootDir/dependencies.gradle"
-
-apply plugin: 'com.github.kt3k.coveralls'
 
 allprojects {
     apply plugin: 'base'
     apply plugin: 'jacoco'
 
-    group 'br.com.thiaguten'
-    version '0.2.0'
+    group = 'br.com.thiaguten'
+    version = '0.2.1-SNAPSHOT'
 //    buildDir = "/mnt/ramdisk/${rootProject.name}/${project.name}"
 
     ext {
         jdkVersion = JavaVersion.VERSION_1_8
         repositoryName = 'rx-mqtt'
         repositoryOwner = 'thiaguten'
-        isReleaseVersion = (project.version ==~ /(\d+\.\d+\.\d+)/)
+        isReleaseVersion = project.version ==~ /\d+\.\d+\.\d+/
         sonatypeUsername = project.hasProperty('ossrhUsername') ? rootProject.ossrhUsername : ''
         sonatypePassword = project.hasProperty('ossrhPassword') ? rootProject.ossrhPassword : ''
         sonatypeUrl = isReleaseVersion ? 'https://oss.sonatype.org/service/local/staging/deploy/maven2/' : 'https://oss.sonatype.org/content/repositories/snapshots/'
@@ -83,16 +80,18 @@ subprojects {
         strictCheck = true
         ignoreFailures = false
         skipExistingHeaders = true
-        ext.name = 'Thiago Gutenberg Carvalho da Costa'
-        ext.email = 'thiaguten@gmail.com'
-        ext.year = Calendar.getInstance().get(Calendar.YEAR)
+        ext {
+            name = 'Thiago Gutenberg Carvalho da Costa'
+            email = 'thiaguten@gmail.com'
+            year = Calendar.getInstance().get(Calendar.YEAR)
+        }
         mapping {
             java = 'SLASHSTAR_STYLE'
         }
     }
 
     checkstyle {
-        toolVersion = '8.10'
+        toolVersion = '8.11'
         showViolations = true
         ignoreFailures = false
         sourceSets = [sourceSets.main]
@@ -122,7 +121,7 @@ subprojects {
     }
 
     pmd {
-        //toolVersion = '6.5.0'
+        //toolVersion = '6.6.0'
         consoleOutput = true
         ignoreFailures = true
         sourceSets = [sourceSets.main]
@@ -162,21 +161,20 @@ subprojects {
             header = project.name
             memberLevel = JavadocMemberLevel.PROTECTED
         }
-        def javaVersion = JavaVersion.current()
-        if (javaVersion.isJava8Compatible()) {
+
+        if (JavaVersion.current().isJava8Compatible()) {
+            options.addBooleanOption('html4', true)
             options.addStringOption('Xdoclint:none', '-quiet')
-        } else if (javaVersion.isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
         }
     }
 
     task sourceJar(type: Jar, dependsOn: classes) {
-        classifier 'sources'
+        classifier = 'sources'
         from sourceSets.main.allSource
     }
 
     task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier 'javadoc'
+        classifier = 'javadoc'
         from javadoc.destinationDir
     }
 
@@ -201,33 +199,33 @@ subprojects {
                 }
 
                 pom.project {
-                    packaging 'jar'
-                    name project.name
-                    description project.description
-                    url "https://github.com/${repositoryOwner}/${repositoryName}"
+                    packaging = 'jar'
+                    name = project.name
+                    description = project.description
+                    url = "https://github.com/${repositoryOwner}/${repositoryName}"
 
                     inceptionYear '2017'
 
                     scm {
-                        url "https://github.com/${repositoryOwner}/${repositoryName}"
-                        connection "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
-                        developerConnection "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
-                        tag 'HEAD'
+                        url = "https://github.com/${repositoryOwner}/${repositoryName}"
+                        connection = "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
+                        developerConnection = "scm:git:git@github.com:${repositoryOwner}/${repositoryName}.git"
+                        tag = 'HEAD'
                     }
 
                     licenses {
                         license {
-                            name 'The Apache Software License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                            distribution 'repo'
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution = 'repo'
                         }
                     }
 
                     developers {
                         developer {
-                            id 'thiaguten'
-                            name 'Thiago Gutenberg Carvalho da Costa'
-                            email 'thiaguten@gmail.com'
+                            id = 'thiaguten'
+                            name = 'Thiago Gutenberg Carvalho da Costa'
+                            email = 'thiaguten@gmail.com'
                         }
                     }
                 }
