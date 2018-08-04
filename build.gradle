@@ -162,9 +162,14 @@ subprojects {
             memberLevel = JavadocMemberLevel.PROTECTED
         }
 
-        if (JavaVersion.current().isJava8Compatible()) {
-            options.addBooleanOption('html4', true)
+        def currentJavaVersion = JavaVersion.current()
+
+        if (currentJavaVersion.isJava8Compatible()) {
             options.addStringOption('Xdoclint:none', '-quiet')
+        }
+
+        if (currentJavaVersion.isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
         }
     }
 
